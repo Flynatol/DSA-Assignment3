@@ -260,6 +260,101 @@ public class PLTreeNodeTest
 		
 		// Again, the Hamcrest matcher generates suitable error messages automatically:
 		assertThat(pltree.toStringPrefix(), equalTo("implies(or(R,P),and(true,not(Q)))"));		
-	}	
+	}
+
+	@Test
+	public void testPLTreeToPrefixStringFalse()
+	{
+		NodeType[] typeList = { NodeType.FALSE };
+
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+
+		// Always check that the tree generated is not null before any other tests:
+		// if it is, it means that you have an error in your input typeList
+
+		assertNotNull("PLTree construction failed when using: " + typeList, pltree);
+
+		// Again, the Hamcrest matcher generates suitable error messages automatically:
+		assertThat(pltree.toStringPrefix(), equalTo("false"));
+	}
+
+	@Test
+	public void testPLTreeToInfixString()
+	{
+		NodeType[] typeList = { NodeType.R, NodeType.P, NodeType.OR, NodeType.TRUE, NodeType.Q, NodeType.NOT, NodeType.AND,	NodeType.IMPLIES };
+
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+
+		// Always check that the tree generated is not null before any other tests:
+		// if it is, it means that you have an error in your input typeList
+
+		assertNotNull("PLTree construction failed when using: " + typeList, pltree);
+
+		// Again, the Hamcrest matcher generates suitable error messages automatically:
+		assertThat(pltree.toStringInfix(), equalTo("((R∨P)→(⊤∧¬Q))"));
+	}
+
+	@Test
+	public void testPLTreeApplyVarBindings()
+	{
+		NodeType[] typeList = { NodeType.R, NodeType.P, NodeType.OR, NodeType.TRUE, NodeType.Q, NodeType.NOT, NodeType.AND,	NodeType.IMPLIES };
+
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+
+		// Always check that the tree generated is not null before any other tests:
+		// if it is, it means that you have an error in your input typeList
+
+		assertNotNull("PLTree construction failed when using: " + typeList, pltree);
+
+
+		Map<NodeType, Boolean> bindings = new HashMap<>();
+		bindings.put(NodeType.P, true);
+		bindings.put(NodeType.R, false);
+
+		assertThat(pltree.toStringPrefix(), equalTo("implies(or(R,P),and(true,not(Q)))"));
+
+		pltree.applyVarBindings(bindings);
+
+		// Again, the Hamcrest matcher generates suitable error messages automatically:
+		assertThat(pltree.toStringPrefix(), equalTo("implies(or(false,true),and(true,not(Q)))"));
+	}
+
+	@Test
+	public void testPLTreeEvaluateConstantSubtrees() {
+		NodeType[] typeList = { NodeType.Q, NodeType.NOT};
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+		assertNotNull("PLTree construction failed when using: " + typeList, pltree);
+		assertThat(pltree.toStringPrefix(), equalTo("not(Q)"));
+	}
+
+	@Test
+	public void testPLTreeReplaceImplies() {
+		NodeType[] typeList = { NodeType.FALSE, NodeType.TRUE, NodeType.OR, NodeType.TRUE, NodeType.Q, NodeType.NOT, NodeType.AND, NodeType.IMPLIES};
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+		assertNotNull("PLTree construction failed when using: " + typeList, pltree);
+
+		pltree.replaceImplies();
+		assertThat(pltree.toStringPrefix(), equalTo("or(not(or(false,true)),and(true,not(Q)))"));
+
+
+	}
+
+	@Test
+	public void testPLTreePushNotDown() {
+		NodeType[] typeList = { NodeType.FALSE, NodeType.TRUE, NodeType.OR, NodeType.NOT, NodeType.TRUE, NodeType.Q, NodeType.NOT, NodeType.AND, NodeType.OR};
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+		assertNotNull("PLTree construction failed when using: " + typeList, pltree);
+
+		pltree.pushNotDown();
+		assertThat(pltree.toStringPrefix(), equalTo("or(and(not(false),not(true)),and(true,not(Q)))"));
+
+
+	}
+
+
+
+
+
+
 
 }

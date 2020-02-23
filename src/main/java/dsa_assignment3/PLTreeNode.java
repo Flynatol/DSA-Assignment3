@@ -4,6 +4,7 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
@@ -38,7 +39,7 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	public static String getStudentID()
 	{
 		//change this return value to return your student id number
-		return "MY STUDENT ID";
+		return "2029844";
 	}
 
 	/**
@@ -49,7 +50,7 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	public static String getStudentName()
 	{
 		//change this return value to return your name
-		return "MY NAME";
+		return "Flynn McGouran-Collins";
 	}
 
 	/**
@@ -234,8 +235,15 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public String toStringPrefix()
 	{
-		// WRITE YOUR CODE HERE, CHANGING THE RETURN STATEMENT IF NECESSARY
-		return "NOT IMPLEMENTED";
+		String output;
+		if (this.type.getArity() == 1){
+			output = this.type.getPrefixName() + "(" + this.child1.toStringPrefix() + ")";
+		} else if (this.type.getArity() == 2){
+			output = this.type.getPrefixName() + "(" + this.child1.toStringPrefix() + "," + this.child2.toStringPrefix() + ")";
+		} else {
+			output = this.type.getPrefixName();
+		}
+		return output;
 	}
 
 	/* (non-Javadoc)
@@ -244,8 +252,15 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public String toStringInfix()
 	{
-		// WRITE YOUR CODE HERE, CHANGING THE RETURN STATEMENT IF NECESSARY
-		return "NOT IMPLEMENTED";
+		String output;
+		if (this.type.getArity() == 1){
+			output = this.type.getInfixName() + this.child1.toStringInfix();
+		} else if (this.type.getArity() == 2){
+			output = "(" + this.child1.toStringInfix() + this.type.getInfixName() + this.child2.toStringInfix() + ")";
+		} else {
+			output = this.type.getInfixName();
+		}
+		return output;
 	}
 
 	/* (non-Javadoc)
@@ -254,8 +269,22 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public void applyVarBindings(Map<NodeType, Boolean> bindings)
 	{
-		// WRITE YOUR CODE HERE
-		return;
+		if (bindings.containsKey(this.type)){
+			boolean var = bindings.get(this.type);
+			if (var == true) {
+				this.type = NodeType.TRUE;
+			} else if (var == false) {
+				this.type = NodeType.FALSE;
+			} else {
+				logger.log(Level.ERROR, "UNEXPECTED VAR TYPE");
+			}
+		}
+		if (child1 != null){
+			child1.applyVarBindings(bindings);
+			if (child2 != null){
+				child2.applyVarBindings(bindings);
+			}
+		}
 	}
 
 	/* (non-Javadoc)
@@ -264,7 +293,27 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public Boolean evaluateConstantSubtrees()
 	{
-		// WRITE YOUR CODE HERE, CHANGING THE RETURN STATEMENT IF NECESSARY
+		Boolean c1, c2;
+		if (child1 != null){
+			c1 = child1.evaluateConstantSubtrees();
+			if (child2 != null){
+				c2 = child2.evaluateConstantSubtrees();
+
+				if (this.type.equals((NodeType.OR)) && ((c1 != null && c1) || (c2 != null && c2))){
+					return true;
+				}
+				if (this.type.equals((NodeType.AND)) && ((c1 != null && !c1) || (c2 != null && !c2))) {
+					return false;
+				}
+			}
+			if ((c1 != null) && this.type.equals(NodeType.NOT)) {
+				return !c1;
+			}
+
+		}
+
+		if (this.type.equals(NodeType.TRUE)) return true;
+		if (this.type.equals(NodeType.FALSE)) return false;
 		return null;
 	}
 
@@ -287,8 +336,16 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public void replaceImplies()
 	{
-		// WRITE YOUR CODE HERE
-		return;
+		if (child1 != null){
+			child1.replaceImplies();
+			if (child2 != null){
+				child2.replaceImplies();
+				if (this.type.equals(NodeType.IMPLIES)) {
+					this.child1 = new PLTreeNode(NodeType.NOT, this.child1, null);
+					this.type = NodeType.OR;
+				}
+			}
+		}
 	}
 
 	/* (non-Javadoc)
@@ -297,7 +354,30 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public void pushNotDown()
 	{
-		// WRITE YOUR CODE HERE
+		if (child1 != null){
+			if (this.type.equals(NodeType.NOT)) {
+				if (this.child1.type.equals(NodeType.NOT)) {
+					this.type = this.child1.child1.type;
+					this.child2 = this.child1.child1.child2;
+					this.child1 = this.child1.child1.child1;
+				} else if (this.child1.type.equals(NodeType.OR)) {
+					this.type = NodeType.AND;
+					this.child2 = new PLTreeNode(NodeType.NOT, this.child1.child2, null);
+					this.child1 = new PLTreeNode(NodeType.NOT, this.child1.child1, null);
+
+				} else if (this.child1.type.equals(NodeType.AND)) {
+					this.type = NodeType.OR;
+					this.child2 = new PLTreeNode(NodeType.NOT, this.child1.child2, null);
+					this.child1 = new PLTreeNode(NodeType.NOT, this.child1.child1, null);
+				}
+			}
+			if (child1 != null) {
+				child1.pushNotDown();
+			}
+			if (child2 != null){
+				child2.pushNotDown();
+			}
+		}
 	}
 
 	/* (non-Javadoc)
@@ -306,8 +386,20 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public void pushOrBelowAnd()
 	{
-		// WRITE YOUR CODE HERE
-		return;
+		if (child1 != null){
+			if (child2 != null){
+				if (this.type.equals(NodeType.OR)) {
+					if (child1.type.equals(NodeType.AND)) {
+						//TODO
+					}
+					if (child2.type.equals(NodeType.AND)) {
+						//TODO
+					}
+				}
+				child2.pushOrBelowAnd();
+			}
+			child1.pushOrBelowAnd();
+		}
 	}
 
 	/* (non-Javadoc)
