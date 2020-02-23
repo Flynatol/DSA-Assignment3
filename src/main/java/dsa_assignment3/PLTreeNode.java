@@ -386,14 +386,20 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public void pushOrBelowAnd()
 	{
+		PLTreeNode c1;
 		if (child1 != null){
 			if (child2 != null){
 				if (this.type.equals(NodeType.OR)) {
 					if (child1.type.equals(NodeType.AND)) {
-						//TODO
-					}
-					if (child2.type.equals(NodeType.AND)) {
-						//TODO
+						this.type = NodeType.AND;
+						c1 = new PLTreeNode(NodeType.OR, child1.child2, child2);
+						child1 = new PLTreeNode(NodeType.OR, child1.child1, new PLTreeNode(child2));
+						child2 = c1;
+					} else if (child2.type.equals(NodeType.AND)) {
+						this.type = NodeType.AND;
+						c1 = new PLTreeNode(NodeType.OR, child1, child2.child1);
+						child2 = new PLTreeNode(NodeType.OR, new PLTreeNode(child1), child2.child2);
+						child1 = c1;
 					}
 				}
 				child2.pushOrBelowAnd();
@@ -408,8 +414,23 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public void makeAndOrRightDeep()
 	{
-		// WRITE YOUR CODE HERE
-		return;
+		if (child1 != null){
+			if (child2 != null){
+				if (this.type.equals(NodeType.OR)) {
+					if (this.child1.type.equals(NodeType.OR)) {
+						child2 = new PLTreeNode(NodeType.OR, child1.child2, child2);
+						child1 = child1.child1;
+					}
+				} else if (this.type.equals(NodeType.AND)) {
+					if (this.child1.type.equals(NodeType.AND)) {
+						child2 = new PLTreeNode(NodeType.AND, child1.child2, child2);
+						child1 = child1.child1;
+					}
+				}
+				child2.makeAndOrRightDeep();
+			}
+			child1.makeAndOrRightDeep();
+		}
 	}
 
 }

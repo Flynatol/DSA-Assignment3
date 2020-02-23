@@ -351,10 +351,28 @@ public class PLTreeNodeTest
 
 	}
 
+	@Test
+	public void testPLTreePushOrBelowAnd() {
+		NodeType[] typeList = { NodeType.FALSE, NodeType.TRUE, NodeType.OR, NodeType.NOT, NodeType.TRUE, NodeType.Q, NodeType.NOT, NodeType.AND, NodeType.OR};
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+		assertNotNull("PLTree construction failed when using: " + typeList, pltree);
+
+		pltree.pushNotDown();
+		pltree.pushOrBelowAnd();
+		assertThat(pltree.toStringPrefix(), equalTo("and(and(or(not(false),true),or(not(false),not(Q))),and(or(not(true),true),or(not(true),not(Q))))"));
 
 
+	}
+
+	@Test
+	public void testPLTreeMakeAndOrRightDeep() {
+		NodeType[] typeList = { NodeType.FALSE, NodeType.NOT, NodeType.TRUE, NodeType.OR, NodeType.FALSE, NodeType.NOT, NodeType.Q, NodeType.NOT, NodeType.OR, NodeType.AND, NodeType.TRUE, NodeType.NOT, NodeType.TRUE, NodeType.OR, NodeType.TRUE, NodeType.NOT, NodeType.Q, NodeType.NOT, NodeType.OR, NodeType.AND, NodeType.AND};
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+		assertNotNull("PLTree construction failed when using: " + typeList, pltree);
+		pltree.makeAndOrRightDeep();
+		assertThat(pltree.toStringPrefix(), equalTo("and(or(not(false),true),and(or(not(false),not(Q)),and(or(not(true),true),or(not(true),not(Q)))))"));
 
 
-
+	}
 
 }
