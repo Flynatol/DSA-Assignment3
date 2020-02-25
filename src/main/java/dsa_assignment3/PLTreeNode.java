@@ -293,23 +293,61 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	@Override
 	public Boolean evaluateConstantSubtrees()
 	{
-		Boolean c1, c2;
 		if (child1 != null){
-			c1 = child1.evaluateConstantSubtrees();
+			child1.evaluateConstantSubtrees();
 			if (child2 != null){
-				c2 = child2.evaluateConstantSubtrees();
+				child2.evaluateConstantSubtrees();
 
-				if (this.type.equals((NodeType.OR)) && ((c1 != null && c1) || (c2 != null && c2))){
+				if (this.type.equals((NodeType.OR))) {
+					if (child1.type.equals(NodeType.TRUE) || child2.type.equals(NodeType.TRUE)) {
+						this.type = NodeType.TRUE;
+						child1 = null;
+						child2 = null;
+						return true;
+					}
+					if (child1.type.equals(NodeType.FALSE)) {
+						this.type = child2.type;
+						this.child1 = child2.child1;
+						this.child2 = child2.child2;
+					} else if (child2.type.equals(NodeType.FALSE)) {
+						this.type = child1.type;
+						this.child1 = child1.child1;
+						this.child2 = child1.child2;
+					}
+
+				}
+
+				if (this.type.equals((NodeType.AND))) {
+					if (child1.type.equals(NodeType.FALSE) || child2.type.equals(NodeType.FALSE)) {
+						this.type = NodeType.FALSE;
+						child1 = null;
+						child2 = null;
+						return false;
+					}
+					if (child1.type.equals(NodeType.TRUE)) {
+						this.type = child2.type;
+						this.child1 = child2.child1;
+						this.child2 = child2.child2;
+					} else if (child2.type.equals(NodeType.TRUE)) {
+						this.type = child1.type;
+						this.child1 = child1.child1;
+						this.child2 = child1.child2;
+					}
+
+				}
+
+			}
+			if (this.type.equals(NodeType.NOT)){
+				if (this.child1.type.equals(NodeType.TRUE)){
+					this.type = NodeType.FALSE;
+					this.child1 = null;
+					return false;
+				} else if (this.child1.type.equals(NodeType.FALSE)) {
+					this.type = NodeType.TRUE;
+					this.child1 = null;
 					return true;
 				}
-				if (this.type.equals((NodeType.AND)) && ((c1 != null && !c1) || (c2 != null && !c2))) {
-					return false;
-				}
 			}
-			if ((c1 != null) && this.type.equals(NodeType.NOT)) {
-				return !c1;
-			}
-
 		}
 
 		if (this.type.equals(NodeType.TRUE)) return true;
@@ -388,23 +426,31 @@ public final class PLTreeNode implements PLTreeNodeInterface
 	{
 		PLTreeNode c1;
 		if (child1 != null){
+			child1.pushOrBelowAnd();
 			if (child2 != null){
+				child2.pushOrBelowAnd();
+
 				if (this.type.equals(NodeType.OR)) {
 					if (child1.type.equals(NodeType.AND)) {
 						this.type = NodeType.AND;
 						c1 = new PLTreeNode(NodeType.OR, child1.child2, child2);
 						child1 = new PLTreeNode(NodeType.OR, child1.child1, new PLTreeNode(child2));
 						child2 = c1;
+						child1.pushOrBelowAnd();
+						child2.pushOrBelowAnd();
+
 					} else if (child2.type.equals(NodeType.AND)) {
 						this.type = NodeType.AND;
 						c1 = new PLTreeNode(NodeType.OR, child1, child2.child1);
 						child2 = new PLTreeNode(NodeType.OR, new PLTreeNode(child1), child2.child2);
 						child1 = c1;
+						child1.pushOrBelowAnd();
+						child2.pushOrBelowAnd();
 					}
 				}
-				child2.pushOrBelowAnd();
+
 			}
-			child1.pushOrBelowAnd();
+
 		}
 	}
 

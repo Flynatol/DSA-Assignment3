@@ -29,7 +29,7 @@ public class PLTreeNodeTest
 	private static final Logger logger        = Logger.getLogger(PLTreeNodeTest.class);
 
 	@Rule
-	public Timeout              globalTimeout = new Timeout(2000, TimeUnit.MILLISECONDS);
+	public Timeout              globalTimeout = new Timeout(20000000, TimeUnit.MILLISECONDS);
 
 	@Test
 	public void testCheckStudentIdentification()
@@ -372,7 +372,67 @@ public class PLTreeNodeTest
 		pltree.makeAndOrRightDeep();
 		assertThat(pltree.toStringPrefix(), equalTo("and(or(not(false),true),and(or(not(false),not(Q)),and(or(not(true),true),or(not(true),not(Q)))))"));
 
-
 	}
 
+	@Test
+	public void bigTest() {
+		NodeType[] typeList = { NodeType.R, NodeType.P, NodeType.OR, NodeType.TRUE, NodeType.Q, NodeType.NOT, NodeType.AND,	NodeType.IMPLIES };
+		PLTreeNodeInterface pltree = PLTreeNode.reversePolishBuilder(typeList);
+
+		assertThat(pltree.toStringPrefix(), equalTo("implies(or(R,P),and(true,not(Q)))"));
+		Map<NodeType, Boolean> bindings = new HashMap<>();
+		bindings.put(NodeType.P, true);
+		bindings.put(NodeType.R, false);
+
+
+		pltree.applyVarBindings(bindings);
+		assertThat(pltree.toStringPrefix(), equalTo("implies(or(false,true),and(true,not(Q)))"));
+		pltree.replaceImplies();
+		assertThat(pltree.toStringPrefix(), equalTo("or(not(or(false,true)),and(true,not(Q)))"));
+		pltree.pushNotDown();
+		assertThat(pltree.toStringPrefix(), equalTo("or(and(not(false),not(true)),and(true,not(Q)))"));
+		pltree.pushOrBelowAnd();
+		assertThat(pltree.toStringPrefix(), equalTo("and(and(or(not(false),true),or(not(false),not(Q))),and(or(not(true),true),or(not(true),not(Q))))"));
+		assertThat(pltree.toStringInfix(), equalTo("(((¬⊥∨⊤)∧(¬⊥∨¬Q))∧((¬⊤∨⊤)∧(¬⊤∨¬Q)))"));
+		pltree.makeAndOrRightDeep();
+		assertThat(pltree.toStringInfix(), equalTo("((¬⊥∨⊤)∧((¬⊥∨¬Q)∧((¬⊤∨⊤)∧(¬⊤∨¬Q))))"));
+		pltree.evaluateConstantSubtrees();
+		assertThat(pltree.toStringPrefix(), equalTo("not(Q)"));
+
+		NodeType[] typeList2 = {NodeType.R, NodeType.P, NodeType.IMPLIES, NodeType.S, NodeType.IMPLIES, NodeType.NOT, NodeType.Q, NodeType.IMPLIES};
+		pltree = PLTreeNode.reversePolishBuilder(typeList2);
+
+		assertThat(pltree.toStringInfix(), equalTo("(¬((R→P)→S)→Q)"));
+
+		pltree.reduceToCNF();
+		assertThat(pltree.toStringPrefix(), equalTo("and(or(R,or(S,Q)),or(not(P),or(S,Q)))"));
+		pltree.evaluateConstantSubtrees();
+		assertThat(pltree.toStringPrefix(), equalTo("and(or(R,or(S,Q)),or(not(P),or(S,Q)))"));
+
+		NodeType[] typeList3 = {NodeType.A, NodeType.B, NodeType.AND, NodeType.C, NodeType.OR, NodeType.D, NodeType.OR, NodeType.E, NodeType.OR, NodeType.F, NodeType.OR, NodeType.G, NodeType.OR, NodeType.H, NodeType.OR};
+		pltree = PLTreeNode.reversePolishBuilder(typeList3);
+
+		assertThat(pltree.toStringPrefix(), equalTo("or(or(or(or(or(or(and(A,B),C),D),E),F),G),H)"));
+		pltree.pushOrBelowAnd();
+		assertThat(pltree.toStringPrefix(), equalTo("and(or(or(or(or(or(or(A,C),D),E),F),G),H),or(or(or(or(or(or(B,C),D),E),F),G),H))"));
+
+		NodeType[] typeList4 = {NodeType.A, NodeType.B, NodeType.AND, NodeType.C, NodeType.AND, NodeType.D, NodeType.OR, NodeType.E, NodeType.OR};
+		pltree = PLTreeNode.reversePolishBuilder(typeList4);
+		assertThat(pltree.toStringPrefix(), equalTo("or(or(and(and(A,B),C),D),E)"));
+		pltree.pushOrBelowAnd();
+		assertThat(pltree.toStringPrefix(), equalTo("and(and(or(or(A,D),E),or(or(B,D),E)),or(or(C,D),E))"));
+
+
+
+
+
+
+
+
+
+
+
+
+
+	}
 }
